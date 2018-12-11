@@ -1,0 +1,160 @@
+\documentclass[a4paper, 12pt]{article}
+
+\newcommand{\languages}{english, french}
+
+\input{include/head.tex}
+
+%%%%%%%%%%%%%%%%%%%
+
+\title{Stabilité d'un pont suspendu soumis à \\[0.3em] des sollicitations cycliques}
+\newcommand{\subtitle}{Introduction aux méthodes numériques et projet}
+\author{
+	Bastien \textsc{Hoffmann}\\
+	Maxime \textsc{Meurisse}\\
+	François \textsc{Rozet}\\
+}
+\newcommand{\context}{1\up{ère} année de Bachelier Ingénieur civil}
+\date{Année académique 2016 - 2017}
+
+%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+	\input{include/titlepage.tex}
+	\tableofcontents
+	\newpage
+	\section{Évolution de l’enveloppe de l’angle de torsion}
+	Le problème qui nous est posé est de déterminer le plus précisément possible après combien de temps l'angle de torsion du tablier vaudra $\num{0.3}$ radians. Pour cela, un fichier \texttt{enveloppe.xls} contenant des valeurs de l'angle à différents temps est mis à notre disposition. Ne connaissant pas la relation analytique liant ces deux paramètres, nous devons interpoler les valeurs données et déterminer grâce à la fonction obtenue le temps correspondant à l'angle recherché.
+	\subsection{L'interpolation}
+	Pour effectuer l'interpolation sur les valeurs données, notre choix s'est porté sur la méthode des \textit{splines cubiques}. Celle-ci a pour particularité de réaliser une interpolation par morceaux, comblant l'intervalle entre chaque pair de points par une fonction du 3\up{ème} degré. Cela assure la continuité de la courbe et l'absence de points anguleux. De plus, avec ce procédé, même sur un grand nombre de points, la possibilité de voir apparaître des oscillations non justifiées est quasi nulle, contrairement à l'interpolation polynômiale.\par
+	Après implémentation de la méthode sur le logiciel \textsc{MATLAB}\footnote{Tous les algorithmes présentés dans ce rapport seront implémentés dans \textsc{MATLAB} R2016a et exécutés sur un ordinateur tournant sous Windows, doté d'un processeur Intel i7 cadencé à $\unit{4}{\giga\hertz}$ et possédant 32 GB de RAM.}, nous obtenons le résultat suivant.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width = \textwidth]{resources/pdf/Q1.pdf}
+		\caption{Interpolation par \textit{splines cubiques} des valeurs du fichier \texttt{enveloppe.xls}}
+	\end{figure}
+	Nous constatons que l'interpolation est concluante car elle se rapproche très fortement des valeurs du fichier \texttt{enveloppe.xls}.
+	\subsection{Étude de la fonction obtenue}
+	Afin de déterminer le plus précisément possible le temps recherché, nous avons implémenté deux méthodes qui permettent de rechercher, sous certaines tolérances, une abscisse correspondant à une image visée et cela à partir de deux abscisses/bornes de départ $x_{0}$ et $x_{1}$. \par
+	Pour choisir celles-ci, nous avons implémenté une fonction assez simple.
+	En premier lieu, l'algorithme de la fonction réduit toutes les images du fichier, préalablement enregistrées dans une matrice, par l'image visée. Il considère, ensuite, le produit de l'image de chaque point avec celle du précédent. Si les deux points se trouvent du \og même côté \fg{} de l'ordonnée visée, le produit est positif et inversement. Puisqu'il nous faut deux points dont les images sont de part et d'autres de celle visée, l'algorithme s'arrête aux premiers points pour lesquels le produit est négatif et il désigne leur abscisse comme bornes de départ.\par
+	Ce système à, la plupart du temps, comme avantage de coincer, entre les bornes de départ, uniquement la première abscisse correspondant à l'ordonnée demandée.
+	\subsubsection{La méthode de la bissection}
+	Cette méthode consiste en une \textit{recherche dichotomique}. Elle travaille dans un intervalle qu'elle réduit de moitié à chaque itération. Cependant, elle veille toujours à garder l'abscisse recherchée dans l'intervalle, convergeant ainsi vers sa cible et permettant de fixer une tolérance sur celle-ci.\par
+	Pour utiliser cette démarche, nous devons vérifier deux hypothèses. Premièrement, la fonction est-elle continue? En ce qui nous concerne, cette condition est bien respectée grâce à l'interpolation par splines cubiques. Secondement, les images des abscisses de départ sont-elles de part et d'autre de l'image visée ? Celle-ci aussi est respectée par l'utilisation de la fonction implémentée pour déterminer les bornes.\par 
+	Puisque les hypothèses sont respectées, l'algorithme convergera assurément vers l'abscisse recherchée. Cependant, son taux de convergence étant linéaire, elle y parviendra assez lentement.
+	\subsubsection{La méthode de la sécante}
+	Cet autre procédé se base sur une relation de récurrence. \`{A} partir de deux abscisses $x_{n}$ et $x_{n + 1}$, une abscisse supplémentaire $x_{n + 2}$ est déterminée comme l'abscisse du point de la droite $X_{n}X_{n + 1}$ dont l'image est égale à celle visée. L'opération est ensuite répétée avec les points $x_{n + 1}$ et $x_{n + 2}$ et ainsi de suite jusqu'à s'être approché suffisamment de l'ordonnée visée.\par
+	Le bon fonctionnement de ce système ne peut pas être garanti par un critère simple. Cependant lorsque la fonction est suffisament monotone sur l'intervalle où la méthode travaille, il y a beaucoup de chance 
+	qu'elle trouve l'abscisse recherchée. De plus, la méthode de la sécante possède un ordre de convergence super-linéaire. Elle la trouvera donc plus vite que la méthode de la bissection dans la grande majorité des cas.
+	\subsubsection{Critère d'arrêt et tolérances}
+	Pour les deux démarches présentées ci-dessus, il est important de fixer un critère d'arrêt cohérent et des tolérances adéquates. Notre algorithme fonctionne de la sorte: tant que le critère d'arrêt n'est pas atteint, et que l'une des tolérances n'est pas respectée, la boucle continue.\par
+	Nous avons déterminé de manière empirique toutes nos tolérances, c.-à-d. que nous les avons toutes fixées à l'epsilon machine, puis nous les avons doublées séparément jusqu'à trouver les plus petites valeurs qui permettent à nos algorithmes de converger. Ainsi, nous avons, pour la sécante, une précision sur les ordonnées de \texttt{eps} et, pour la bissection, une précision sur les ordonnées de \texttt{4eps} et sur les abscisses de \texttt{32eps}.\par
+	Le critère d'arrêt de la bissection est calculé au départ de la fonction de telle manière que l'intervalle sur lequel elle travaille ne puisse pas être plus petit que \texttt{eps}. Quant à celui de la sécante il a été fixé arbitrairement à $\num{32}$.
+	\subsubsection{Conclusion}
+	Après implémentation, nous avons obtenu les résultats suivants:
+	\begin{itemize}
+		\item la méthode de la bissection a donné un temps d'environ\footnote{$\unit{\num{213.4513696486580}}{\second}$} $\num{213}$ secondes après 46 itérations.
+		\item la méthode de la sécante a donné le même temps après 8 itérations.
+	\end{itemize}
+	Nous constatons donc bien que les deux procédés convergent vers un même temps qui, par vérification graphique, semble bien être la solution recherchée. La méthode de la bissection étant plus robuste lorsque ces conditions initiales sont respectées, notre choix se portera sur celle-ci pour la suite du problème.
+	\section{Simulation du système du pont suspendu}
+	Cette deuxième question ayant pour but de simuler le système du pont, la modélisation de son comportement se base sur les équations linéaire et non-linéaire fournies. Afin de les résoudre, les deux solveurs employés sont la méthode d’Euler explicite et d'\texttt{ode45}. Le système d’équations différentielles du deuxième ordre qui est soumis à ces deux démarches se base sur les principales variables du mouvement du pont, à savoir sa position $y$ et l’angle d'inclinaison $\theta$ de son tablier, celles-ci étant ré-exprimées comme variables des équations données.
+	\subsection{Ré-écriture du système d'équations différentielles}
+	Avant toute chose, nous avons commencé par ré-écrire le système d'équations différentielles donné. Par le changement de variables
+	\begin{equation*}
+	\left\{\begin{aligned}
+	y_{+} & = y + l \sin\theta \\ 
+	y_{-} & = y - l \sin\theta
+	\end{aligned}\right.
+	\end{equation*}
+	nous obtenons, dans le cas du modèle linéaire
+	\begin{equation*}
+	\left\{\begin{aligned}
+	y'' & = \left(A \sin(\omega  t) - 2 K y - c_{y} y'\right) \dfrac{1}{m} \\
+	\theta'' & = \left(3 K l^{2} \sin(2 \theta) + 3 c_{\theta} \theta'\right) \dfrac{1}{-m l^{2}}
+	\end{aligned}\right.
+	\end{equation*}
+	et dans le cas du modèle non linéaire
+	\begin{equation*}
+	\left\{\begin{aligned}
+	y'' & = \left(A\alpha \sin(\omega t) - K(e^{\alpha  (y + l \sin \theta)} + e^{\alpha  (y - l \sin \theta)} - 2) - \alpha c_{y} y'\right) \dfrac{1}{\alpha m} \\
+	\theta'' & = \left(K  l \theta (e^{\alpha  (y - l \sin \theta)} - e^{\alpha  (y + l \sin \theta)}) - \alpha c_{\theta} \theta'\right) \dfrac{3}{m l^{2}\alpha}
+	\end{aligned}\right.
+	\end{equation*}
+	\subsection{Méthode d’Euler explicite}
+	Cette méthode ne bénéficiant pas déjà d’une implémentation dans \textsc{MATLAB}, nous l’avons réalisée nous-même. Le principe de cette dernière se base sur un développement de Taylor à l’ordre 1.\par
+	Pour obtenir une erreur acceptable sur les valeurs obtenues, nous avons envisagé un pas de $10^{-3}$. Déterminé de manière empirique, ce pas est suffisant pour obtenir un modèle stable. L'algorithme prenant un temps considérable pour calculer l'ensemble des valeurs, nous nous sommes contentés du premier pas fournissant des résultats stables afin de ne pas devoir laisser tourner la boucle trop longtemps.
+	\subsection{Méthodes de \textit{Runge-Kunta}}
+	Les méthodes de \textit{Runge-Kutta} offrent un large panel de choix en ce qui concerne leur utilisation dans un solveur de systèmes d’équations différentielles. Nous employons dans le cas présent la méthode d’\texttt{ode45}. A l’instar d'Euler explicite et de tous les autres solveurs \texttt{ode}, \texttt{ode45} utilise un développement de Taylor afin de résoudre les systèmes d'équations qui lui sont soumis.\par
+	Ces procédés se distinguent essentiellement les uns des autres par l’ordre du développement de Taylor des différents résultats évalués lors de la résolution. Dans le cas présent, \texttt{ode45} est une méthode adaptative, considérant un développement de Taylor à l’ordre 4 et d’un second à l’ordre 5. Cette combinaison le rend plus efficace et plus précis. Contrairement à la méthode d’Euler explicite, le pas utilisé n'est pas constant et est déterminé par le solveur. Ce dernier l’adaptera en fonction des tolérances fixées. Celles de base utilisées par \texttt{ode45} sont de $10^{-3}$ pour \texttt{RelTol} et $10^{-6}$ pour \texttt{AbsTol}. Après vérification, il s'est avéré qu'augmenter la précision de \texttt{RelTol} à $10^{-4}$ n'apportait rien. Nous avons donc conservé les tolérances initiales.
+	\subsection{Comparaison des solveurs}
+	Effectuons la résolution demandée sur un intervalle de temps allant de 0 à 1000 secondes afin de comparer les deux procédés.\par
+	Tout d’abord, nous pouvons constater une différence d’efficacité marquée entre les deux démarches. Toutes les deux conduisent à des résultats assez similaires, mais lorsque nous considérons les temps d’exécutions (pour la position du tablier par exemple), nous observons de larges différences. Grâce à l’utilisation du profiler, il s'avère que la méthode d’Euler explicite prend beaucoup plus de temps que celle d’\texttt{ode45}.
+	\begin{table}[H]
+		\centering
+		\begin{tabular}{| l | c | c | c |}
+			\hline
+			\textbf{Function name} & \textbf{Calls} & \textbf{Total time}                & \textbf{Self Time}                 \\ \hline\hline
+			euler\_exp             & 1              & $\unit{\num{7.921}}{\second}$ & $\unit{\num{3.301}}{\second}$ \\ \hline
+			odefunction\_nl        & 1000000        & $\unit{\num{4.620}}{\second}$ & $\unit{\num{4.620}}{\second}$ \\ \hline\hline
+			ode45                  & 1              & $\unit{\num{0.276}}{\second}$ & $\unit{\num{0.145}}{\second}$ \\ \hline
+			odefunction\_nl        & 15913          & $\unit{\num{0.093}}{\second}$ & $\unit{\num{0.093}}{\second}$ \\ \hline
+		\end{tabular}
+		\caption{Comparaison des temps d'exécution des méthodes Euler explicite et \texttt{ode45} pour le modèle non-linéaire (calcul de la position du tablier).}
+	\end{table}
+	Ensuite, comparons les résultats obtenus. Les comportements déterminés par les différents solveurs sont peu plausibles et pratiquement similaires. En effet, en ce qui concerne la position du tablier, celle-ci présente des oscillations très importantes dans un premier temps avec un déplacement maximal de près de 6 mètres par rapport à sa position d’équilibre. Quelque soit le modèle observé, les oscillations tendent à se stabiliser avec un déplacement de $\unit{\num{1.5}}{\meter}$ autour de la position d'équilibre.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width = \textwidth]{resources/pdf/Q2_position.pdf}
+		\caption{Variation de la position du tablier pour les modèles linéaire et non-linéaire, résolus avec les méthodes Euler explicite et \texttt{ode45}}
+	\end{figure}
+	Observons également l’évolution de l’inclinaison du tablier. Dans cette situation, les différentes méthodes sont à nouveau pratiquement similaires, les comportements de l’inclinaison sont identiques dans les deux procédés. Cependant, on constate une divergence totale suivant le modèle utilisé. Dès le départ, le modèle linéaire décrit de faibles perturbations qui décroissent assez rapidement et se stabilisent à une valeur encore plus faible. Inversement, le modèle non-linéaire considère de faibles oscillations initiales du tablier avant que celles-ci ne se mettent à augmenter drastiquement. Au contraire des graphiques précédents, nous pouvons aisément constater ici les limitations du modèle linéaire. Ses simplifications conduisent à un résultat qui parait éloigné de la réalité pour un vent cyclique d'une telle force. Le modèle non-linéaire, plus précis dans ses évaluations de la situation, nous fournit un comportement beaucoup plus cohérent avec ce que pourrait subir le tablier comme mouvements, c.-à-d. une oscillation continue entre $\unit{\num{0.5}}{\radian}$ et $\unit{\num{-0.5}}{\radian}$.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width = \textwidth]{resources/pdf/Q2_angle.pdf}
+		\caption{Variation de l'angle de torsion pour les modèles linéaire et non-linéaire, résolus avec les méthodes Euler explicite et \texttt{ode45}}
+	\end{figure}
+	Au vu des résultats obtenus dans cet exemple-ci, nous considérerons dans le reste du problème la méthode de \textit{Runge-Kunta} avec l’un de ses solveurs pour son efficacité et sa robustesse. En ce qui concerne le modèle, nous représenterons le comportement du pont à l’aide du non-linéaire, les simplifications du modèle linéaire limitant la fiabilité des résultats.
+	\section{Étude de la stabilité du tablier de pont}
+	Dans cette dernière partie du problème, il nous est demandé de déterminer et d'étudier, sous différents paramètres, l'amplitude de la sollicitation cyclique verticale due au vent qui mènerait à la rupture du pont. Dans un soucis de réalisme, seul le modèle non-linéaire sera sujet à cette étude. Cependant, lors de nos calculs, nous avons pu constater que le système d'équations différentielles fourni était raide, ce qui rend très difficile sa résolution par des méthodes numériques. Sous conseil des assistants, nous avons donc préféré à la fonction \texttt{ode45}, la fonction \texttt{ode15s} plus à même de gérer un système raide.
+	\subsection{Tension maximale exercée dans les câbles}
+	Sous l'action du vent, des tensions s'exercent dans les câbles soutenant le pont. Il nous est demandé de déterminer la tension maximale exercée dans ceux-ci pour une amplitude de $\unit{\num{27500}}{\newton}$ et un paramètre d'amortissement des câbles de $\unit{\num{0.1}}{\reciprocal\meter}$.\par
+	Pour obtenir le maximum demandé, nous avons calculé les tensions s'exerçant dans les deux câbles pour chaque instant déterminé par \texttt{ode15s}. Nous avons ensuite isolé la tension maximale de chacun des deux câbles pour ne reprendre finalement que la plus grande des deux. Mais, notre opération s'est effectuée sur un intervalle discontinu. Pour nous approcher de la réalité, nous avons repris un certain nombre de valeurs autour de celle trouvée et nous avons effectué une interpolation sur celles-ci. Cela nous a permis de trouver un second maximum plus réaliste.
+	Après implémentation, nous trouvons une tension maximale de $\unit{\num{7533.384}}{\newton}$.
+	\subsection{Étude de l'amplitude de la sollicitation cyclique verticale due au vent}
+	Nous devons étudier l’amplitude de la sollicitation cyclique verticale due au vent qui mènerait à la rupture du pont. Par soucis de simplicité, nous appellerons cette amplitude \og l'amplitude de rupture \fg{}.
+	\subsubsection{Détermination de l'amplitude de rupture}
+	Nous savons que si une tension de $\unit{\num{7900}}{\newton}$ s'exerce dans un des deux câbles du pont, cela conduirait à sa rupture. Il nous est maintenant demandé de déterminer à quelle amplitude correspond une tension maximale de $\unit{\num{7900}}{\newton}$ dans un des câbles.\par
+	L'amplitude était, à la base, un paramètre fixe du système d'équations différentielles. Il nous faut désormais le considérer comme un paramètre variable.\par À chaque itération, la position du tablier et la tension maximale dans les câbles sont recalculées. Nous obtenons donc différentes valeurs de tensions maximales associées à des valeurs de l'amplitude. Il nous reste à utiliser la méthode de la bissection pour trouver à quelle amplitude correspond une tension maximale de $\unit{\num{7900}}{\newton}$.\par
+	Après implémentation et avec une tolérance de une unité pour les ordonnées et les abscisses, nous obtenons une amplitude de rupture de $\unit{\num{28810}}{\newton}$. Pour des chiffres si élevés, il n'est pas nécessaire d'augmenter plus notre précision.
+	\subsubsection{Évolution de l'amplitude du vent}
+	L'amplitude de rupture étant déterminée pour les conditions données, il nous est demandé d'étudier son évolution lorsque le paramètre $\alpha$ varie. Pour cela, nous reprenons l'algorithme implémenté précédemment, et nous la re-calculons pour des valeurs de $\alpha$ évoluant de $\unit{\num{0}}{}$ à $\unit{\num{0.3}}{\radian}$, par pas de $\unit{\num{0.00075}}{\radian}$.\par
+	Nous avons obtenu le résultat suivant: plus le paramètre $\alpha$ augmente, plus l'amplitude de rupture diminue. En observant le graphique, on remarque que la relation entre l'amplitude et $\alpha$ est presque anti-proportionnelle.
+	Cependant, la courbe présente de légères oscillations. Une explication plausible est qu'il y aurait plusieurs amplitudes répondant aux critères. Ainsi, notre bissection ne trouverait pas toujours la plus faible de ces valeurs ce qui induirait les cassures.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width = \textwidth]{resources/pdf/Q33.pdf}
+		\caption{Évolution de l'amplitude de rupture par rapport au paramètre $\alpha$, variant de $\unit{\num{0}}{}$ à $\unit{\num{0.3}}{\radian}$ par pas de $\unit{\num{0.00075}}{\radian}$}
+	\end{figure}
+	\subsubsection{Choix des intervalles, tolérances et précisions}
+	Dans ce dernier problème, nous utilisons de nouveau la méthode de la bissection pour sa robustesse. Nous devons alors re-définir nos points de départ $x_{0}$ et $x_{1}$, et les tolérances sur les abscisses et ordonnées.\par
+	En ce qui concerne les points de départ, nous avons choisi $\unit{\num{0}}{}$ et $\unit{\num{40000}}{\newton}$. Le point 0 est l'amplitude minimum que nous pourrions avoir, et le point 40 000 majore l'amplitude maximum qui pourrait être atteinte (déterminée empiriquement). Toutes les amplitudes calculées se trouveront donc forcément dans cet intervalle, et nos points seront donc bien de part et d'autre de l'abscisse recherchée.\par
+	En ce qui concerne les tolérances, nous avons pris 1 pour les abscisses et les ordonnées. Les valeurs de base étant données avec une précision à l'unité, il nous a semblé opportun de conserver celle-ci pour fournir notre réponse.\par
+	Nous utilisons également la fonction \texttt{ode15s}. Tout comme \texttt{ode45}, nous devons définir \texttt{AbsTol} et \texttt{RelTol}. Pour ce problème-ci, nous avons choisi un \texttt{AbsTol} de $10^{-6}$ et un \texttt{RelTol} de $10^{-7}$. La différence des valeurs calculées avec des \texttt{RelTol} inférieurs est nulle, ce qui nous pousse à ne pas descendre plus bas que $10^{-7}$.
+	\section{Sources consultées}
+	\subsection{Bibliographie}
+	\begin{enumerate}
+		\item Professeur \textsc{Louveaux} Q., \textit{Introduction aux méthodes numériques}, 2016-2017
+		\item Professeur \textsc{Denoël} V., \textit{Stabilité d’un pont suspendu soumis à des sollicitations cycliques - Mise en contexte}, 2017
+		\item \textsc{Moore} H., \textit{MATLAB for Engineers - Third Edition}, 2012
+		\item The MathWorks, Inc., \textit{MATLAB - Object-Oriented Programming}, 2015
+	\end{enumerate}
+	\subsection{Webographie}
+	\begin{enumerate}
+		\item Documentation \textsc{MATLAB}, {\url{https://nl.mathworks.com/help/matlab}}, consultée en février, mars et avril 2017
+		\item Documentation \texttt{ode}, {\url{https://nl.mathworks.com/help/matlab/math/choose-an-ode-solver.html}}, consultée en février, mars et avril 2017
+		\item Documentation \LaTeX, {\url{https://fr.wikibooks.org/wiki/LaTeX}}, consultée en février, mars et avril 2017
+		\item Documentation \texttt{parfor}, {\url{https://nl.mathworks.com/help/distcomp/parfor.html}}, consultée en avril 2017
+		\item Documentation \texttt{try...catch}, {\url{https://nl.mathworks.com/help/matlab/ref/try.html}}, consultée en mars et avril 2017
+	\end{enumerate}
+\end{document}

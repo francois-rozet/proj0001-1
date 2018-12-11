@@ -1,0 +1,37 @@
+\newgeometry{margin = 2.5cm}
+\makeatletter
+\begin{titlepage}
+	\begin{minipage}[t][0.425\textheight][t]{\textwidth}
+		\begin{center}
+			\includegraphics[height=0.15\textheight]{include/resources/pdf/logo_uliege.pdf}
+			\vfill
+			{\huge \textsc{Université de Liège}}
+			\vfill
+		\end{center}
+	\end{minipage}
+	\vfill
+	\begin{minipage}{\textwidth}
+		\hspace{6pt}
+		\begin{mdframed}[linewidth = 2pt, innertopmargin = 12pt, innerbottommargin = 12pt, leftline = false, rightline = false]
+			\begin{center}
+				{\huge \bfseries \@title}
+			\end{center}
+		\end{mdframed}
+		\hspace{6pt}
+	\end{minipage}
+	\vfill
+	\begin{minipage}[b][0.425\textheight][t]{\textwidth}
+		\begin{center}
+			\ifx\subtitle\undefined
+			\else
+			{\LARGE \subtitle}
+			\fi
+			\vfill
+			{\large \@author}
+			\vfill
+			{\large \context \\[6pt] \@date}
+		\end{center}
+	\end{minipage}
+\end{titlepage}
+\makeatother
+\restoregeometry
