@@ -1,0 +1,5 @@
+Q1. Lancer "Q1.m"
+Q2. Lancer "Q2.m"
+Q3.1. Lancer "f(27500, 0.1)"
+Q3.2. Lancer "Q3.m" avec "alpha = transpose(0.1)"
+Q3.3. Lancer "Q3.m" avec "alpha = transpose(pas:pas:0.3)"
