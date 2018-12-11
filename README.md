@@ -12,3 +12,7 @@ Projet réalisé dans le cadre du cours *Introduction aux méthodes numériques 
 * **Bastien Hoffmann** - [Basthien](https://github.com/Basthien)
 * **Maxime Meurisse** - [meurissemax](https://github.com/meurissemax)
 * **François Rozet** - [Donshel](https://github.com/Donshel)
+
+## Note
+
+Ce projet a reçu la note de 18/20.
